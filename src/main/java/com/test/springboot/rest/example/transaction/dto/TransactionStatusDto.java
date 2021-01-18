@@ -23,7 +23,7 @@ public class TransactionStatusDto {
   public void setChannel(String channel) { this.channel = channel; }
 
   public String getStatus() { return this.status; }
-  public void setStatus(String channel) { this.status = status; }
+  public void setStatus(String status) { this.status = status; }
 
   public Double getAmount() { return this.amount; }
   public void setAmount(Double amount) { this.amount = amount; }
@@ -44,6 +44,7 @@ public class TransactionStatusDto {
   public TransactionStatusDto clone() {
     return new TransactionStatusDto()
       .reference(this.getReference())
+      .channel(this.getChannel())
       .status(this.status)
       .amount(this.amount)
       .fee(this.fee);

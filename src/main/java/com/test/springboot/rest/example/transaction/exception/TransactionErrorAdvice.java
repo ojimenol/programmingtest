@@ -20,8 +20,8 @@ public class TransactionErrorAdvice {
     return Optional.of(exception)
       .map(TransactionException::getCode)
       .map(Error::findErrorByCode)
-      .map(error -> new TransactionResponse<Object>(error.getCode(), error.getDescription()))
-      .orElseThrow(() -> new RuntimeException(Error.DEFAULT_ERROR_MESSAGE.getDescription()));
+      .map(error -> new TransactionResponse<>(error.getCode(), error.getDescription()))
+      .orElseThrow(() -> new RuntimeException(exception.getDescription()));
 
   }
 
@@ -29,7 +29,7 @@ public class TransactionErrorAdvice {
   @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
   public @ResponseBody TransactionResponse<?> handleGenericException(Exception exception, HttpServletRequest request) {
 
-    return new TransactionResponse<>(Error.DEFAULT_ERROR_MESSAGE);
+    return new TransactionResponse<>(Error.DEFAULT_ERROR_MESSAGE.getCode(), exception.getMessage());
 
   }
 }

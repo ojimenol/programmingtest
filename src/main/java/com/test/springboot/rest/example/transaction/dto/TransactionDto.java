@@ -109,6 +109,7 @@ public class TransactionDto {
     return new TransactionDto()
       .reference(this.reference)
       .accountIban(this.accountIban)
+      .description(this.description)
       .date(this.date)
       .amount(this.amount)
       .fee(this.fee);

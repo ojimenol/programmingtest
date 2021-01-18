@@ -3,7 +3,7 @@ package com.test.springboot.rest.example.transaction.defs;
 import java.util.stream.Stream;
 
 public enum Error {
-  DEFAULT_ERROR_MESSAGE("0100","Unknown error creating transaction"),
+  DEFAULT_ERROR_MESSAGE("0100","Unknown transaction error"),
   ACCOUNT_NOT_FOUND("0101","Account not found"),
   CREATE_TRANSACTION_FAIL("0200","Can't create transaction."),
   GENERATE_TRANSACTION_REFERENCES_FULL("0201","Can't generate reference. Can't found free references"),
@@ -24,7 +24,7 @@ public enum Error {
     return Stream.of(Error.values())
       .filter(error -> error.getCode().equals(code))
       .findFirst()
-      .orElse(null);
+      .orElse(Error.DEFAULT_ERROR_MESSAGE);
 
   }
 }
