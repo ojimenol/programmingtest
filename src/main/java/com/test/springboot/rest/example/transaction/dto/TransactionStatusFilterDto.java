@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import javax.validation.constraints.NotNull;
 
-public class TransactionStatusFilter {
+public class TransactionStatusFilterDto {
   @NotNull
   private String reference;
   @JsonInclude(Include.NON_NULL)
@@ -16,7 +16,7 @@ public class TransactionStatusFilter {
   public String getChannel() { return this.channel; }
   public void setChannel(String channel) { this.channel = channel; }
 
-  public TransactionStatusFilter reference(String ref) { this.reference = ref; return this; }
+  public TransactionStatusFilterDto reference(String ref) { this.reference = ref; return this; }
 
-  public TransactionStatusFilter channel(String channel) { this.channel = channel; return this; }
+  public TransactionStatusFilterDto channel(String channel) { this.channel = channel; return this; }
 }

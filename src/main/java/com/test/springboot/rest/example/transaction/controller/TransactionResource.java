@@ -1,94 +1,78 @@
 package com.test.springboot.rest.example.transaction.controller;
 
+import static com.test.springboot.rest.example.util.FunctionalUtils.*;
+
 import com.test.springboot.rest.example.transaction.defs.Error;
+import com.test.springboot.rest.example.transaction.dto.TransactionDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionResponse;
-import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilter;
+import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilterDto;
 import com.test.springboot.rest.example.transaction.exception.TransactionException;
+import com.test.springboot.rest.example.transaction.mapper.TransactionMapper;
 import com.test.springboot.rest.example.transaction.persistent.Transaction;
-import com.test.springboot.rest.example.transaction.dto.TransactionSearch;
-import com.test.springboot.rest.example.transaction.dto.TransactionStatus;
+import com.test.springboot.rest.example.transaction.dto.TransactionSearchDto;
+import com.test.springboot.rest.example.transaction.dto.TransactionStatusDto;
+import com.test.springboot.rest.example.transaction.service.TransactionService;
 import com.test.springboot.rest.example.transaction.service.TransactionServiceImpl;
+import io.swagger.annotations.ApiParam;
 import java.util.List;
-import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 @RestController
 public class TransactionResource {
 
     @Autowired
-    TransactionServiceImpl transactionService;
+    private TransactionService transactionService;
+
+    @Autowired
+    private TransactionMapper mapper;
 
     @PostMapping("/transactions")
-    public CompletionStage<ResponseEntity<TransactionResponse<Transaction>>> createTransaction(@Valid @RequestBody Transaction transaction) {
+    public ResponseEntity<TransactionResponse<TransactionDto>> createTransaction(@Valid @RequestBody TransactionDto transaction) {
 
-        return CompletableFuture.supplyAsync(() -> transactionService.createTransaction(transaction))
-          .thenApply(newTransaction -> Optional.of(newTransaction)
-            .map(TransactionResponse::new)
-            .map(TransactionResponse::ok)
-            .map(ResponseEntity.ok()::body)
-            .orElseThrow(() -> new TransactionException(Error.CREATE_TRANSACTION_FAIL))
-          )
-          .exceptionally(throwable -> Optional.of(throwable)
-            .map(this::findError)
-            .map(error -> new TransactionResponse<Transaction>(error.getCode(), error.getDescription()))
-            .map(ResponseEntity.badRequest()::body)
-            .orElse(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new TransactionResponse<Transaction>())));
+        return Optional.of(transaction)
+          .map(mapper::toEntity)
+          .map(transactionService::createTransaction)
+          .map(mapper::toDto)
+          .map(TransactionResponse::new).map(TransactionResponse::ok)
+          .map(ResponseEntity.ok()::body)
+          .orElseThrow(() -> new TransactionException(Error.CREATE_TRANSACTION_FAIL));
+
     }
 
-    @PostMapping("/transactions/search")
-    public CompletionStage<ResponseEntity<TransactionResponse<List<Transaction>>>> getTransactions(@Valid @RequestBody TransactionSearch search) {
+    @GetMapping("/transactions/search")
+    public ResponseEntity<TransactionResponse<List<TransactionDto>>> getTransactions(
+      @ApiParam(value = "Transactions account iban", required = true) @RequestParam("account_iban") String iban,
+      @ApiParam(value = "Sort results", allowableValues = "ASC, DESC") @RequestParam(value = "sort", required = false) String sort
+    ) {
 
-        return CompletableFuture.supplyAsync(() -> transactionService.searchTransactions(search))
-          .thenApply(TransactionResponse::new)
-          .thenApply(ResponseEntity::ok)
-          .exceptionally(throwable -> Optional.of(throwable)
-            .map(this::findError)
-            .map(error -> new TransactionResponse<List<Transaction>>(error.getCode(), error.getDescription()))
-            .map(ResponseEntity.badRequest()::body)
-            .orElse(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new TransactionResponse<List<Transaction>>())));
+        TransactionSearchDto searchFilter = new TransactionSearchDto().accountIban(iban).sort(sort);
+
+        return Optional.of(searchFilter)
+          .map(transactionService::searchTransactions)
+          .map(transactions -> applyToList(transactions, mapper::toDto))
+          .map(TransactionResponse::new)
+          .map(ResponseEntity::ok)
+          .orElseThrow(RuntimeException::new);
 
     }
 
     @PostMapping("/transactions/status")
-    public CompletionStage<ResponseEntity<TransactionResponse<TransactionStatus>>> getTransactionStatus(@Valid @RequestBody TransactionStatusFilter search) {
+    public ResponseEntity<TransactionResponse<TransactionStatusDto>> getTransactionStatus(@Valid @RequestBody TransactionStatusFilterDto search) {
 
-        return CompletableFuture.supplyAsync(() -> transactionService.searchTransactionStatus(search))
-          .thenApply(TransactionResponse::new)
-          .thenApply(ResponseEntity::ok)
-          .exceptionally(throwable -> Optional.of(throwable)
-            .map(this::findError)
-            .map(error -> new TransactionResponse<TransactionStatus>(error.getCode(), error.getDescription()))
-            .map(ResponseEntity.badRequest()::body)
-            .orElse(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new TransactionResponse<TransactionStatus>())));
-
-    }
-
-    private Error findError(Throwable exception) {
-        return Optional.of(exception)
-          .map(Throwable::getCause)
-          .filter(ex -> ex.getClass().isAssignableFrom(TransactionException.class))
-          .map(TransactionException.class::cast)
-          .map(TransactionException::getCode)
-          .map(this::findErrorByCode)
-          .orElse(Error.DEFAULT_ERROR_MESSAGE);
-
-    }
-
-    private Error findErrorByCode(String code) {
-        return Stream.of(Error.values())
-          .filter(error -> error.getCode().equals(code))
-          .findFirst()
-          .orElse(null);
+        return Optional.of(search)
+          .map(transactionService::searchTransactionStatus)
+          .map(TransactionResponse::new)
+          .map(ResponseEntity::ok)
+          .orElseThrow(RuntimeException::new);
 
     }
 }

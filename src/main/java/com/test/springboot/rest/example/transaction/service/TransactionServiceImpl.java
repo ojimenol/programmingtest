@@ -2,19 +2,23 @@ package com.test.springboot.rest.example.transaction.service;
 
 import static com.test.springboot.rest.example.util.FunctionalUtils.*;
 
+import com.test.springboot.rest.example.account.dto.AccountDto;
 import com.test.springboot.rest.example.account.persistent.Account;
+import com.test.springboot.rest.example.account.service.AccountService;
 import com.test.springboot.rest.example.account.service.AccountServiceImpl;
 import com.test.springboot.rest.example.transaction.business.rules.TransactionStatusSearchRules;
 import com.test.springboot.rest.example.transaction.defs.Error;
 import com.test.springboot.rest.example.transaction.defs.SortMode;
 import com.test.springboot.rest.example.transaction.defs.Status;
-import com.test.springboot.rest.example.transaction.dto.TransactionSearch;
-import com.test.springboot.rest.example.transaction.dto.TransactionStatus;
-import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilter;
+import com.test.springboot.rest.example.transaction.dto.TransactionDto;
+import com.test.springboot.rest.example.transaction.dto.TransactionSearchDto;
+import com.test.springboot.rest.example.transaction.dto.TransactionStatusDto;
+import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilterDto;
 import com.test.springboot.rest.example.transaction.exception.TransactionException;
 import com.test.springboot.rest.example.transaction.generator.TransactionRefGenerator;
 import com.test.springboot.rest.example.transaction.persistent.Transaction;
 import com.test.springboot.rest.example.transaction.repository.TransactionRepository;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -31,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionServiceImpl implements  TransactionService {
 
   @Autowired
-  private TransactionStatusSearchRules transactionRules;
+  private Clock clock;
 
   @Autowired
   private TransactionRefGenerator transactionRefGenerator;
@@ -40,7 +44,7 @@ public class TransactionServiceImpl implements  TransactionService {
   private TransactionRepository transactionRepository;
 
   @Autowired
-  private AccountServiceImpl accountService;
+  private AccountService accountService;
 
   @Autowired
   private TransactionStatusSearchRules transactionStatusRules;
@@ -54,9 +58,12 @@ public class TransactionServiceImpl implements  TransactionService {
 
     checkDuplicatedReference(transaction);
 
-    Account account = getAccount(transaction.getAccountIban());
+    Account account = Optional.of(transaction)
+      .map(Transaction::getAccountIban)
+      .flatMap(accountService::getAccount)
+      .orElseThrow(() -> new TransactionException(Error.ACCOUNT_NOT_FOUND));
 
-    checkPositiveBalanceAfterOperation(transaction, account);
+    checkPositiveBalanceAfter(transaction, account);
 
     return transactionRepository.save(transaction);
 
@@ -64,16 +71,16 @@ public class TransactionServiceImpl implements  TransactionService {
 
   @Transactional(propagation = Propagation.NESTED, readOnly = true)
   @Override
-  public List<Transaction> searchTransactions(TransactionSearch searchFilter) {
+  public List<Transaction> searchTransactions(TransactionSearchDto searchFilter) {
 
     Comparator<Transaction> sort = Optional.of(searchFilter)
-      .map(TransactionSearch::getSort)
+      .map(TransactionSearchDto::getSort)
       .filter(SortMode.DESC.getMode()::equals)
       .map(mode -> Comparator.comparing(Transaction::getAmount).reversed())
       .orElse(Comparator.comparing(Transaction::getAmount));
 
     return Stream.of(searchFilter)
-      .map(TransactionSearch::getAccountIban)
+      .map(TransactionSearchDto::getAccountIban)
       .map(transactionRepository::findByAccountIban)
       .flatMap(List::stream)
       .sorted(sort)
@@ -83,13 +90,13 @@ public class TransactionServiceImpl implements  TransactionService {
 
   @Transactional(propagation = Propagation.NESTED, readOnly = true)
   @Override
-  public TransactionStatus searchTransactionStatus(TransactionStatusFilter searchFilter) {
+  public TransactionStatusDto searchTransactionStatus(TransactionStatusFilterDto searchFilter) {
 
     return Optional.of(searchFilter)
-      .map(TransactionStatusFilter::getReference)
+      .map(TransactionStatusFilterDto::getReference)
       .flatMap(transactionRepository::findByReference)
       .map(transaction -> transactionStatusRules.apply(searchFilter, transaction))
-      .orElse(new TransactionStatus()
+      .orElse(new TransactionStatusDto()
         .reference(searchFilter.getReference())
         .status(Status.INVALID.getValue()));
 
@@ -105,14 +112,14 @@ public class TransactionServiceImpl implements  TransactionService {
   private void generateReferenceIfNull(Transaction transaction) {
     Optional.of(transaction)
       .filter(trans -> Objects.isNull(trans.getReference()))
-      .map(trans -> getNewReference())
+      .map(trans -> transactionRefGenerator.generateReference())
       .ifPresent(transaction::setReference);
   }
 
   private void generateDateIfNull(Transaction transaction) {
     Optional.of(transaction)
       .filter(trans -> Objects.isNull(trans.getDate()))
-      .map(trans -> OffsetDateTime.now())
+      .map(trans -> OffsetDateTime.now(clock))
       .ifPresent(transaction::setDate);
 
   }
@@ -122,23 +129,8 @@ public class TransactionServiceImpl implements  TransactionService {
     return transactionRepository.findByReference(reference).isPresent();
   }
 
-  private String getNewReference() {
-    String reference = transactionRefGenerator.generateReference();
-
-    while (existsReference(reference)) {
-      reference = transactionRefGenerator.generateReference();
-    }
-
-    return reference;
-  }
-
-  private Account getAccount(String iban) {
-    return accountService.getAccount(iban)
-      .orElseThrow(() -> new TransactionException(Error.ACCOUNT_NOT_FOUND));
-  }
-
-  private void checkPositiveBalanceAfterOperation(Transaction transaction, Account account) {
-    // Assume the quota is absolute, not a percentage
+  private void checkPositiveBalanceAfter(Transaction transaction, Account account) {
+    // Assume quota is absolute, not a percentage
     double newAmount = Optional.of(transaction)
       .map(Transaction::getFee)
       .map(fee -> transaction.getAmount() - fee)

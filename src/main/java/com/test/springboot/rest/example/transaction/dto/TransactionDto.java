@@ -1,51 +1,30 @@
-package com.test.springboot.rest.example.transaction.persistent;
+package com.test.springboot.rest.example.transaction.dto;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.time.OffsetDateTime;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
-@Entity
-@Table(name = "TRANSACTION")
-public class Transaction {
+public class TransactionDto {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
-
-  @Column(name = "REFERENCE", length = 6, nullable = false, unique = true)
+  @Size(min = 6, message = "Name should have at least 6 characters")
   private String reference;
 
   @NotNull
-  @Column(name = "ACCOUNT_IBAN", length = 24, nullable = false)
+  @Size(min = 24, max = 24, message = "IBAN should have 24 characters")
+  @JsonAlias("account_iban")
   private String accountIban;
 
-  @Column(name = "DATE")
   private OffsetDateTime date;
 
   @NotNull
-  @Column(name = "AMOUNT", nullable = false)
   private Double amount;
 
-  @Column(name = "FEE")
   private Double fee;
 
-  @Column(name = "DESCRIPTION")
   private String description;
 
-  public Transaction() {
-  }
-
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
+  public TransactionDto() {
   }
 
   public String getReference() {
@@ -96,38 +75,38 @@ public class Transaction {
     this.description = description;
   }
 
-  public Transaction reference(String ref) {
+  public TransactionDto reference(String ref) {
     this.reference = ref;
     return this;
   }
 
-  public Transaction accountIban(String iban) {
+  public TransactionDto accountIban(String iban) {
     this.accountIban = iban;
     return this;
   }
 
-  public Transaction date(OffsetDateTime date) {
+  public TransactionDto date(OffsetDateTime date) {
     this.date = date;
     return this;
   }
 
-  public Transaction amount(Double amount) {
+  public TransactionDto amount(Double amount) {
     this.amount = amount;
     return this;
   }
 
-  public Transaction fee(Double fee) {
+  public TransactionDto fee(Double fee) {
     this.fee = fee;
     return this;
   }
 
-  public Transaction description(String desc) {
+  public TransactionDto description(String desc) {
     this.description = desc;
     return this;
   }
 
-  public Transaction clone() {
-    return new Transaction()
+  public TransactionDto clone() {
+    return new TransactionDto()
       .reference(this.reference)
       .accountIban(this.accountIban)
       .date(this.date)

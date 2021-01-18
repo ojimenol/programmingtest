@@ -7,7 +7,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 @Entity
 @Table(name = "ACCOUNT")
@@ -18,7 +17,6 @@ public class Account {
   private Long id;
 
   @NotNull
-  @Size(min = 24, max = 24, message = "IBAN should have 24 characters")
   @Column(name = "IBAN", length = 24, nullable = false, unique = true)
   private String iban;
 
@@ -48,5 +46,15 @@ public class Account {
 
   public void setBalance(Double balance) {
     this.balance = balance;
+  }
+
+  public Account iban(String iban) {
+    this.iban = iban;
+    return this;
+  }
+
+  public Account balance(Double balance) {
+    this.balance = balance;
+    return this;
   }
 }

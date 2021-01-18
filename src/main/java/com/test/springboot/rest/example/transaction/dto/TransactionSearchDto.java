@@ -3,7 +3,7 @@ package com.test.springboot.rest.example.transaction.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import javax.validation.constraints.NotNull;
 
-public class TransactionSearch {
+public class TransactionSearchDto {
 
   @NotNull
   @JsonAlias("account_iban")
@@ -15,5 +15,15 @@ public class TransactionSearch {
 
   public String getSort() { return this.sort; }
   public void setSort(String mode) { this.sort = mode; }
+
+  public TransactionSearchDto accountIban(String iban) {
+    this.accountIban = iban;
+    return this;
+  }
+
+  public TransactionSearchDto sort(String sort) {
+    this.sort = sort;
+    return this;
+  }
 
 }

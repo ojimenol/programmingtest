@@ -1,5 +1,9 @@
 package com.test.springboot.rest.example.transaction.generator;
 
+import com.test.springboot.rest.example.transaction.defs.Error;
+import com.test.springboot.rest.example.transaction.exception.TransactionException;
+import com.test.springboot.rest.example.transaction.persistent.Reference;
+import com.test.springboot.rest.example.transaction.repository.ReferenceRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -11,38 +15,45 @@ public class TransactionRefGenerator {
   static final int CHAR_A_INDEX = 'A';
   static final int CHAR_Z_INDEX = 'Z';
   static final int REFERENCE_SIZE = 6;
-  static final int REFERENCE_MAX_INT_VALUE = (int) Math.pow(10, REFERENCE_SIZE - 1);
+  static final int REFERENCE_NUMERIC_ELEMENTS_NUMBER = 100000;
 
   private Random random;
+
+  private ReferenceRepository referenceRepository;
+
+  public TransactionRefGenerator(ReferenceRepository repository) {
+    this.referenceRepository = repository;
+  }
 
   public TransactionRefGenerator() {
     random = new Random();
   }
 
   public String generateReference() {
-    return Optional.of(REFERENCE_MAX_INT_VALUE + 1)
-      .map(random::nextInt)
-      .map(Math::abs)
-      .map(number -> number + calcAlpha(number))
-      .map(this::fillWithZeros)
-      .orElse(String.valueOf(CHAR_A_INDEX));
+    return Optional.of(new Reference())
+      .map(referenceRepository::save)
+      .map(this::calcReferenceValue)
+      .map(referenceRepository::save)
+      .map(Reference::getValue)
+      .orElse(null);
   }
 
-  private String fillWithZeros(String reference) {
-    return Optional.of(reference)
-      .map(String::valueOf)
-      .filter(ref -> ref.length() < REFERENCE_SIZE)
-      .map(ref -> String.format("%1$" + REFERENCE_SIZE + "s", ref))
-      .map(ref -> ref.replaceAll("\\s", "0"))
-      .orElse(reference);
+  private Reference calcReferenceValue(Reference ref) {
+    Optional.of(ref.getId())
+      .map(number -> number % REFERENCE_NUMERIC_ELEMENTS_NUMBER + toAlpha(number / REFERENCE_NUMERIC_ELEMENTS_NUMBER))
+      .map(reference -> String.format("%" + REFERENCE_SIZE + "s", reference))
+      .map(reference -> reference.replaceAll(" ", "0"))
+      .ifPresent(ref::setValue);
+
+    return ref;
   }
 
-  private String calcAlpha(int number) {
-    return Optional.of(number)
-      .map(value -> value % (CHAR_Z_INDEX - CHAR_A_INDEX + 1))
+  private String toAlpha(long offset) {
+    return Optional.of(offset)
+      .filter(charOffset -> charOffset <= CHAR_Z_INDEX - CHAR_A_INDEX)
       .map(charOffset -> CHAR_A_INDEX + charOffset)
       .map(charIndex -> (char) charIndex.intValue())
       .map(String::valueOf)
-      .orElse(String.valueOf(CHAR_A_INDEX));
+      .orElseThrow(() -> new TransactionException(Error.GENERATE_TRANSACTION_REFERENCES_FULL));
   }
 }

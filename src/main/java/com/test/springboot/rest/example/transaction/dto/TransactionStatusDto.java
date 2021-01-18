@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import javax.validation.constraints.NotNull;
 
-public class TransactionStatus {
+public class TransactionStatusDto {
   @NotNull
   private String reference;
   @JsonInclude(Include.NON_NULL)
@@ -31,18 +31,18 @@ public class TransactionStatus {
   public Double getFee() { return this.fee; }
   public void setFee(Double fee) { this.fee = fee; }
 
-  public TransactionStatus reference(String ref) { this.reference = ref; return this; }
+  public TransactionStatusDto reference(String ref) { this.reference = ref; return this; }
 
-  public TransactionStatus channel(String channel) { this.channel = channel; return this; }
+  public TransactionStatusDto channel(String channel) { this.channel = channel; return this; }
 
-  public TransactionStatus status(String status) { this.status = status; return this; }
+  public TransactionStatusDto status(String status) { this.status = status; return this; }
 
-  public TransactionStatus amount(Double amount) { this.amount = amount; return this; }
+  public TransactionStatusDto amount(Double amount) { this.amount = amount; return this; }
 
-  public TransactionStatus fee(Double fee) { this.fee = fee; return this; }
+  public TransactionStatusDto fee(Double fee) { this.fee = fee; return this; }
 
-  public TransactionStatus clone() {
-    return new TransactionStatus()
+  public TransactionStatusDto clone() {
+    return new TransactionStatusDto()
       .reference(this.getReference())
       .status(this.status)
       .amount(this.amount)
