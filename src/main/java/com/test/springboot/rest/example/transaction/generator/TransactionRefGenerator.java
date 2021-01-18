@@ -7,7 +7,6 @@ import com.test.springboot.rest.example.transaction.repository.ReferenceReposito
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.Random;
 
 @Component
 public class TransactionRefGenerator {
@@ -17,16 +16,10 @@ public class TransactionRefGenerator {
   static final int REFERENCE_SIZE = 6;
   static final int REFERENCE_NUMERIC_ELEMENTS_NUMBER = 100000;
 
-  private Random random;
-
   private ReferenceRepository referenceRepository;
 
   public TransactionRefGenerator(ReferenceRepository repository) {
     this.referenceRepository = repository;
-  }
-
-  public TransactionRefGenerator() {
-    random = new Random();
   }
 
   public String generateReference() {
@@ -40,6 +33,7 @@ public class TransactionRefGenerator {
 
   private Reference calcReferenceValue(Reference ref) {
     Optional.of(ref.getId())
+      .filter(number -> number >= 0)
       .map(number -> number % REFERENCE_NUMERIC_ELEMENTS_NUMBER + toAlpha(number / REFERENCE_NUMERIC_ELEMENTS_NUMBER))
       .map(reference -> String.format("%" + REFERENCE_SIZE + "s", reference))
       .map(reference -> reference.replaceAll(" ", "0"))

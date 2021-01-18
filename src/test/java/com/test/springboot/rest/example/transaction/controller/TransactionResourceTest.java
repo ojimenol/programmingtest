@@ -251,7 +251,7 @@ public class TransactionResourceTest {
         .contentType(MediaType.APPLICATION_JSON))
       .andExpect(status().isOk())
       .andDo(print()).andExpect(status().isOk())
-      .andExpect(jsonPath("response.reference", equalTo("00002A")))
+      .andExpect(jsonPath("response.reference", equalTo("00020A")))
       .andExpect(jsonPath("response.status", equalTo("INVALID")));
   }
 
