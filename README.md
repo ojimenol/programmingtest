@@ -25,3 +25,8 @@ Just execute command:
 mvn test
 ```
 
+## Monitoring application URL
+
+```
+http://localhost:8080/monitoring
+```
