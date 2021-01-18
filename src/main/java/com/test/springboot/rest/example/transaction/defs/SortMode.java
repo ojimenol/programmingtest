@@ -1,10 +1,10 @@
 package com.test.springboot.rest.example.transaction.defs;
 
-import java.util.stream.Stream;
-
 public enum SortMode {
   ASC("ASCENDING"),
   DESC("DESCENDING");
+
+  private static SortMode DEFAULT_MODE = ASC;
 
   SortMode(String mode) {
     this.mode = mode;
@@ -14,12 +14,5 @@ public enum SortMode {
 
   public String getMode() {
     return this.mode;
-  }
-
-  public static SortMode getSortByMode(String mode) {
-    return Stream.of(SortMode.values())
-      .filter(value -> value.getMode().equals(mode))
-      .findFirst()
-      .orElse(SortMode.ASC);
   }
 }

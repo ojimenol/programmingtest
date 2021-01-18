@@ -10,7 +10,7 @@ public class TransactionMapper {
 
   public Transaction toEntity(TransactionDto dto) {
 
-    Objects.requireNonNull(dto, "");
+    Objects.requireNonNull(dto, "TransactionDto is null. Can't map to entity");
 
     return new Transaction()
       .accountIban(dto.getAccountIban())
@@ -23,7 +23,7 @@ public class TransactionMapper {
 
   public TransactionDto toDto(Transaction entity) {
 
-    Objects.requireNonNull(entity);
+    Objects.requireNonNull(entity, "Transaction is null. Can't map to dto");
 
     return new TransactionDto()
       .accountIban(entity.getAccountIban())

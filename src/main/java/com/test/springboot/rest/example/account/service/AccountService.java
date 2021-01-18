@@ -5,5 +5,5 @@ import java.util.Optional;
 
 public interface AccountService {
 
-  public Optional<Account> getAccount(String iban);
+  public Optional<Account> getAccountByIban(String iban);
 }

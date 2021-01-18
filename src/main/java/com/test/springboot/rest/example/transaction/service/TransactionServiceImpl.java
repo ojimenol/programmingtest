@@ -2,15 +2,12 @@ package com.test.springboot.rest.example.transaction.service;
 
 import static com.test.springboot.rest.example.util.FunctionalUtils.*;
 
-import com.test.springboot.rest.example.account.dto.AccountDto;
 import com.test.springboot.rest.example.account.persistent.Account;
 import com.test.springboot.rest.example.account.service.AccountService;
-import com.test.springboot.rest.example.account.service.AccountServiceImpl;
 import com.test.springboot.rest.example.transaction.business.rules.TransactionStatusSearchRules;
 import com.test.springboot.rest.example.transaction.defs.Error;
 import com.test.springboot.rest.example.transaction.defs.SortMode;
 import com.test.springboot.rest.example.transaction.defs.Status;
-import com.test.springboot.rest.example.transaction.dto.TransactionDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionSearchDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionStatusDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilterDto;
@@ -60,7 +57,7 @@ public class TransactionServiceImpl implements  TransactionService {
 
     Account account = Optional.of(transaction)
       .map(Transaction::getAccountIban)
-      .flatMap(accountService::getAccount)
+      .flatMap(accountService::getAccountByIban)
       .orElseThrow(() -> new TransactionException(Error.ACCOUNT_NOT_FOUND));
 
     checkPositiveBalanceAfter(transaction, account);
@@ -69,7 +66,6 @@ public class TransactionServiceImpl implements  TransactionService {
 
   }
 
-  @Transactional(propagation = Propagation.NESTED, readOnly = true)
   @Override
   public List<Transaction> searchTransactions(TransactionSearchDto searchFilter) {
 
@@ -88,7 +84,6 @@ public class TransactionServiceImpl implements  TransactionService {
 
   }
 
-  @Transactional(propagation = Propagation.NESTED, readOnly = true)
   @Override
   public TransactionStatusDto searchTransactionStatus(TransactionStatusFilterDto searchFilter) {
 
@@ -123,7 +118,6 @@ public class TransactionServiceImpl implements  TransactionService {
       .ifPresent(transaction::setDate);
 
   }
-
   
   private boolean existsReference(String reference) {
     return transactionRepository.findByReference(reference).isPresent();

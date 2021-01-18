@@ -12,7 +12,7 @@ public class AccountServiceImpl implements AccountService {
   @Autowired
   private AccountRepository accountRepository;
 
-  public Optional<Account> getAccount(String iban) {
+  public Optional<Account> getAccountByIban(String iban) {
 
     return accountRepository.findByIban(iban);
   }

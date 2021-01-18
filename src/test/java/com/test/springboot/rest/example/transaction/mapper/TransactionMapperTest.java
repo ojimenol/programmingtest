@@ -15,7 +15,7 @@ public class TransactionMapperTest {
   private TransactionMapper mapper = new TransactionMapper();
 
   @Test
-  public void testMapDtoToEntity() {
+  public void testMapEntityToDto() {
     Transaction entity = new Transaction()
       .accountIban("IBAN")
       .reference("REFERENCE")
@@ -29,19 +29,30 @@ public class TransactionMapperTest {
     assertThat(dto).isEqualToComparingFieldByField(entity);
   }
 
-  @Test
-  public void testMapEntityToDto() {
-    TransactionDto dto = new TransactionDto()
-      .accountIban("IBAN")
-      .reference("REFERENCE")
-      .amount(0.0)
-      .date(OffsetDateTime.now())
-      .fee(0.0)
-      .description("DESCRIPTION");
+  @Test(expected = NullPointerException.class)
+  public void testMapNullEntityToDto() {
 
+    mapper.toDto(null);
+  }
+
+  @Test
+  public void testMapDtoToEntity() {
+    TransactionDto dto = new TransactionDto();
+    dto.setAccountIban("IBAN");
+    dto.setReference("REFERENCE");
+    dto.setAmount(0.0);
+    dto.setDate(OffsetDateTime.now());
+    dto.setFee(0.0);
+    dto.setDescription("DESCRIPTION");
 
     Transaction entity = mapper.toEntity(dto);
 
     assertThat(dto).isEqualToComparingFieldByField(entity);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testMapNullDtoToEntity() {
+
+    mapper.toEntity(null);
   }
 }

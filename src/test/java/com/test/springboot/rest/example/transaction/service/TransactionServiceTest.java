@@ -69,7 +69,7 @@ public class TransactionServiceTest {
     transaction = loader.loadResourceJsonObject("transaction/service/create_transaction.json", Transaction.class);
     account = new Account().iban(transaction.getAccountIban()).balance(0.0);
 
-    given(accountService.getAccount(transaction.getAccountIban())).willReturn(Optional.of(account));
+    given(accountService.getAccountByIban(transaction.getAccountIban())).willReturn(Optional.of(account));
 
     given(transactionRepository.findByReference(FREE_REFERENCE_1)).willReturn(Optional.empty());
     given(transactionRepository.findByReference(FREE_REFERENCE_2)).willReturn(Optional.empty());
@@ -103,7 +103,7 @@ public class TransactionServiceTest {
     transaction.setReference(null);
 
     given(transactionRefGenerator.generateReference()).willReturn(FREE_REFERENCE_2);
-    given(accountService.getAccount(transaction.getAccountIban())).willReturn(Optional.of(account));
+    given(accountService.getAccountByIban(transaction.getAccountIban())).willReturn(Optional.of(account));
     given(transactionRepository.save(transaction)).willReturn(transaction);
 
     Transaction newTransaction = transactionService.createTransaction(transaction);

@@ -178,6 +178,33 @@ public class TransactionResourceTest {
 
   @Test
   @SuppressWarnings("unchecked")
+  public void shouldReturnTransactionsByIbanDefaultOrdering() throws Exception {
+
+    TransactionSearchDto searchFilter = loader.loadResourceJsonObject(
+      "transaction/controller/search_transactions.json", TransactionSearchDto.class);
+    searchFilter.sort(null);
+
+    MvcResult result = this.mockMvc.perform(
+      get("/transactions/search")
+        .param("account_iban", searchFilter.getAccountIban())
+        .param("sort", searchFilter.getSort()))
+      .andExpect(status().isOk())
+      .andDo(print()).andExpect(status().isOk())
+      .andExpect(jsonPath("response").isArray())
+      .andExpect(jsonPath("response").isNotEmpty())
+      .andReturn();
+
+    Optional.of(result)
+      .map(MvcResult::getResponse)
+      .map(Unchecked.function(MockHttpServletResponse::getContentAsString))
+      .map(Unchecked.function(this::jsonToResponse))
+      .map(TransactionResponse::getResponse)
+      .ifPresent(transactions -> assertThat(transactions).isSortedAccordingTo(Comparator.comparingDouble(
+        TransactionDto::getAmount)));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnTransactionsByIbanOrderingAscending() throws Exception {
 
     TransactionSearchDto searchFilter = loader.loadResourceJsonObject(
