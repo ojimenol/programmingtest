@@ -65,8 +65,15 @@ public class TransactionResource {
 
     }
 
-    @PostMapping("/transactions/status")
-    public ResponseEntity<TransactionResponse<TransactionStatusDto>> getTransactionStatus(@Valid @RequestBody TransactionStatusFilterDto search) {
+    @GetMapping("/transactions/status")
+    public ResponseEntity<TransactionResponse<TransactionStatusDto>> getTransactionStatus(
+      @ApiParam(value = "Transaction reference", required = true) @RequestParam("reference") String reference,
+      @ApiParam(value = "Channel") @RequestParam(value = "channel") String channel
+    ) {
+
+        TransactionStatusFilterDto search = new TransactionStatusFilterDto()
+          .reference(reference)
+          .channel(channel);
 
         return Optional.of(search)
           .map(transactionService::searchTransactionStatus)

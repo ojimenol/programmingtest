@@ -2,6 +2,7 @@ package com.test.springboot.rest.example.transaction.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.springboot.rest.example.transaction.defs.Channels;
 import com.test.springboot.rest.example.transaction.defs.SortMode;
 import com.test.springboot.rest.example.transaction.dto.TransactionDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionResponse;
@@ -260,9 +261,9 @@ public class TransactionResourceTest {
   @Test
   public void shouldReturnTransactionsStatus() throws Exception {
     this.mockMvc.perform(
-      post("/transactions/status")
-        .content(loader.loadResourceContent("transaction/controller/search_transaction_status.json"))
-        .contentType(MediaType.APPLICATION_JSON))
+      get("/transactions/status")
+        .param("reference", "00001A")
+        .param("channel", Channels.ATM.getValue()))
       .andExpect(status().isOk())
       .andDo(print()).andExpect(status().isOk())
       .andExpect(jsonPath("response.reference", equalTo("00001A")))
@@ -272,10 +273,9 @@ public class TransactionResourceTest {
   @Test
   public void shouldReturnErrorByNotExistingTransaction() throws Exception {
     this.mockMvc.perform(
-      post("/transactions/status")
-        .content(loader.loadResourceContent(
-          "transaction/controller/search_transaction_status_unknown_reference.json"))
-        .contentType(MediaType.APPLICATION_JSON))
+      get("/transactions/status")
+        .param("reference", "00020A")
+        .param("channel", Channels.ATM.getValue()))
       .andExpect(status().isOk())
       .andDo(print()).andExpect(status().isOk())
       .andExpect(jsonPath("response.reference", equalTo("00020A")))
