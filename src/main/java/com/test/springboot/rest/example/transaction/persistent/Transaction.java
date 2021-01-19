@@ -1,10 +1,13 @@
 package com.test.springboot.rest.example.transaction.persistent;
 
+import com.test.springboot.rest.example.account.persistent.Account;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
@@ -17,12 +20,13 @@ public class Transaction {
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
 
-  @Column(name = "REFERENCE", length = 6, nullable = false, unique = true)
-  private String reference;
+  @NotNull
+  @OneToOne(targetEntity = Reference.class)
+  private Reference reference;
 
   @NotNull
-  @Column(name = "ACCOUNT_IBAN", length = 24, nullable = false)
-  private String accountIban;
+  @ManyToOne(targetEntity = Account.class)
+  private Account account;
 
   @Column(name = "DATE")
   private OffsetDateTime date;
@@ -48,20 +52,20 @@ public class Transaction {
     this.id = id;
   }
 
-  public String getReference() {
+  public Reference getReference() {
     return this.reference;
   }
 
-  public void setReference(String reference) {
+  public void setReference(Reference reference) {
     this.reference = reference;
   }
 
-  public String getAccountIban() {
-    return this.accountIban;
+  public Account getAccount() {
+    return this.account;
   }
 
-  public void setAccountIban(String iban) {
-    this.accountIban = iban;
+  public void setAccount(Account account) {
+    this.account = account;
   }
 
   public OffsetDateTime getDate() {
@@ -96,13 +100,13 @@ public class Transaction {
     this.description = description;
   }
 
-  public Transaction reference(String ref) {
+  public Transaction reference(Reference ref) {
     this.reference = ref;
     return this;
   }
 
-  public Transaction accountIban(String iban) {
-    this.accountIban = iban;
+  public Transaction account(Account account) {
+    this.account = account;
     return this;
   }
 
@@ -129,7 +133,6 @@ public class Transaction {
   public Transaction clone() {
     return new Transaction()
       .reference(this.reference)
-      .accountIban(this.accountIban)
       .date(this.date)
       .amount(this.amount)
       .fee(this.fee);

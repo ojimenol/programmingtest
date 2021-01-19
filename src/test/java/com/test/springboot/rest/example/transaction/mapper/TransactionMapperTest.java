@@ -1,8 +1,11 @@
 package com.test.springboot.rest.example.transaction.mapper;
 
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.test.springboot.rest.example.account.persistent.Account;
 import com.test.springboot.rest.example.transaction.dto.TransactionDto;
+import com.test.springboot.rest.example.transaction.persistent.Reference;
 import com.test.springboot.rest.example.transaction.persistent.Transaction;
 import java.time.OffsetDateTime;
 import org.junit.Test;
@@ -17,8 +20,8 @@ public class TransactionMapperTest {
   @Test
   public void testMapEntityToDto() {
     Transaction entity = new Transaction()
-      .accountIban("IBAN")
-      .reference("REFERENCE")
+      .account(new Account().iban("IBAN"))
+      .reference(new Reference().value("REFERENCE"))
       .amount(0.0)
       .date(OffsetDateTime.now())
       .fee(0.0)
@@ -26,7 +29,9 @@ public class TransactionMapperTest {
 
     TransactionDto dto = mapper.toDto(entity);
 
-    assertThat(dto).isEqualToComparingFieldByField(entity);
+    assertThat(dto.getAccountIban()).isEqualTo(entity.getAccount().getIban());
+    assertThat(dto.getReference()).isEqualTo(entity.getReference().getValue());
+    assertThat(dto).isEqualToIgnoringGivenFields(entity, "accountIban", "reference");
   }
 
   @Test(expected = NullPointerException.class)
@@ -47,7 +52,9 @@ public class TransactionMapperTest {
 
     Transaction entity = mapper.toEntity(dto);
 
-    assertThat(dto).isEqualToComparingFieldByField(entity);
+    assertThat(entity.getReference().getValue()).isEqualTo(dto.getReference());
+    assertThat(entity.getAccount().getIban()).isEqualTo(dto.getAccountIban());
+    assertThat(entity).isEqualToIgnoringGivenFields(dto, "id", "account", "reference");
   }
 
   @Test(expected = NullPointerException.class)

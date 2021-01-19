@@ -1,12 +1,17 @@
 package com.test.springboot.rest.example.transaction.generator;
 
+import static com.test.springboot.rest.example.util.FunctionalUtils.peek;
+
 import com.test.springboot.rest.example.transaction.defs.Error;
 import com.test.springboot.rest.example.transaction.exception.TransactionException;
 import com.test.springboot.rest.example.transaction.persistent.Reference;
 import com.test.springboot.rest.example.transaction.repository.ReferenceRepository;
+import com.test.springboot.rest.example.util.FunctionalUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 @Component
 public class TransactionRefGenerator {
@@ -22,24 +27,23 @@ public class TransactionRefGenerator {
     this.referenceRepository = repository;
   }
 
-  public String generateReference() {
-    return Optional.of(new Reference())
-      .map(referenceRepository::save)
-      .map(this::calcReferenceValue)
-      .map(referenceRepository::save)
-      .map(Reference::getValue)
+  public Reference generateReference() {
+    Reference newReference = referenceRepository.save(new Reference());
+
+    return Optional.of(newReference)
+      .map(Reference::getId)
+      .map(this::getReferenceValue)
+      .map(refValue -> newReference.clone().value(refValue))
       .orElse(null);
   }
 
-  private Reference calcReferenceValue(Reference ref) {
-    Optional.of(ref.getId())
+  private String getReferenceValue(Long id) {
+    return Optional.of(Optional.ofNullable(id).orElse(1L))
       .filter(number -> number >= 0)
       .map(number -> number % REFERENCE_NUMERIC_ELEMENTS_NUMBER + toAlpha(number / REFERENCE_NUMERIC_ELEMENTS_NUMBER))
       .map(reference -> String.format("%" + REFERENCE_SIZE + "s", reference))
       .map(reference -> reference.replaceAll(" ", "0"))
-      .ifPresent(ref::setValue);
-
-    return ref;
+      .orElse(null);
   }
 
   private String toAlpha(long offset) {

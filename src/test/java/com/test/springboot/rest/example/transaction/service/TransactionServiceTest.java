@@ -15,7 +15,9 @@ import com.test.springboot.rest.example.transaction.dto.TransactionStatusDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilterDto;
 import com.test.springboot.rest.example.transaction.exception.TransactionException;
 import com.test.springboot.rest.example.transaction.generator.TransactionRefGenerator;
+import com.test.springboot.rest.example.transaction.persistent.Reference;
 import com.test.springboot.rest.example.transaction.persistent.Transaction;
+import com.test.springboot.rest.example.transaction.repository.ReferenceRepository;
 import com.test.springboot.rest.example.transaction.repository.TransactionRepository;
 import com.test.springboot.rest.example.transaction.util.FixedClock;
 import com.test.springboot.rest.example.transaction.util.ResourceLoader;
@@ -26,6 +28,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,6 +64,9 @@ public class TransactionServiceTest {
   @Mock
   private TransactionStatusSearchRules transactionStatusRules;
 
+  @Mock
+  private ReferenceRepository referenceRepository;
+
   private Transaction transaction;
   private Account account;
 
@@ -67,19 +74,21 @@ public class TransactionServiceTest {
   public void setUp() {
     ResourceLoader loader = new ResourceLoader(new JsonConfig().objectMapper());
     transaction = loader.loadResourceJsonObject("transaction/service/create_transaction.json", Transaction.class);
-    account = new Account().iban(transaction.getAccountIban()).balance(0.0);
 
-    given(accountService.getAccountByIban(transaction.getAccountIban())).willReturn(Optional.of(account));
+    given(accountService.getAccountByIban(transaction.getAccount().getIban())).willReturn(Optional.of(transaction.getAccount()));
 
-    given(transactionRepository.findByReference(FREE_REFERENCE_1)).willReturn(Optional.empty());
-    given(transactionRepository.findByReference(FREE_REFERENCE_2)).willReturn(Optional.empty());
-    given(transactionRepository.findByReference(EXISTING_REFERENCE)).willReturn(Optional.of(new Transaction()));
+    given(referenceRepository.findByValue(FREE_REFERENCE_1)).willReturn(Optional.empty());
+    given(referenceRepository.findByValue(FREE_REFERENCE_2)).willReturn(Optional.empty());
+    given(referenceRepository.findByValue(EXISTING_REFERENCE)).willReturn(Optional.of(new Reference().value(EXISTING_REFERENCE)));
   }
 
   @Test
   public void shouldCreateTransaction() {
-    transaction.setReference(FREE_REFERENCE_1);
+    Reference reference = new Reference().value(FREE_REFERENCE_1);
 
+    transaction.setReference(reference);
+
+    given(referenceRepository.save(reference)).willReturn(reference);
     given(transactionRepository.save(transaction)).willReturn(transaction);
 
     Transaction newTransaction = transactionService.createTransaction(transaction);
@@ -91,8 +100,6 @@ public class TransactionServiceTest {
   @Test
   public void shouldNotCreateTransactionByPersistenceError() {
 
-    given(transactionRepository.save(transaction)).willReturn(null);
-
     Transaction newTransaction = transactionService.createTransaction(transaction);
 
     assertThat(newTransaction).isNull();
@@ -102,8 +109,10 @@ public class TransactionServiceTest {
   public void shouldCreateTransactionGeneratingReference() {
     transaction.setReference(null);
 
-    given(transactionRefGenerator.generateReference()).willReturn(FREE_REFERENCE_2);
-    given(accountService.getAccountByIban(transaction.getAccountIban())).willReturn(Optional.of(account));
+    Reference reference = new Reference().value(FREE_REFERENCE_2);
+
+    given(referenceRepository.save(reference)).willReturn(reference);
+    given(transactionRefGenerator.generateReference()).willReturn(reference);
     given(transactionRepository.save(transaction)).willReturn(transaction);
 
     Transaction newTransaction = transactionService.createTransaction(transaction);
@@ -115,7 +124,7 @@ public class TransactionServiceTest {
   @Test(expected = TransactionException.class)
   public void shouldNotCreateTransactionByDuplicatedReference() {
 
-    transaction.setReference(EXISTING_REFERENCE);
+    transaction.setReference(new Reference().value(EXISTING_REFERENCE));
 
     transactionService.createTransaction(transaction);
   }
@@ -123,7 +132,7 @@ public class TransactionServiceTest {
   @Test(expected = TransactionException.class)
   public void shouldNotCreateTransactionByNegativeBalance() {
     transaction.setAmount(-100.0);
-    transaction.setReference(FREE_REFERENCE_1);
+    transaction.setReference(new Reference().value(FREE_REFERENCE_1));
 
     transactionService.createTransaction(transaction);
   }
@@ -131,7 +140,7 @@ public class TransactionServiceTest {
   @Test
   public void shouldSearchTransactions() {
     TransactionSearchDto filter = new TransactionSearchDto()
-      .accountIban(transaction.getAccountIban())
+      .accountIban(transaction.getAccount().getIban())
       .sort(SortMode.ASC.getMode());
 
     given(transactionRepository.findByAccountIban(filter.getAccountIban()))
@@ -148,7 +157,7 @@ public class TransactionServiceTest {
   @Test
   public void shouldSearchTransactionsReturnEmpty() {
     TransactionSearchDto filter = new TransactionSearchDto()
-      .accountIban(transaction.getAccountIban())
+      .accountIban(transaction.getAccount().getIban())
       .sort(SortMode.ASC.getMode());
 
     given(transactionRepository.findByAccountIban(filter.getAccountIban()))
@@ -165,7 +174,7 @@ public class TransactionServiceTest {
   public void shouldSearchTransactionsOrderingAscending() {
 
     TransactionSearchDto filter = new TransactionSearchDto()
-      .accountIban(transaction.getAccountIban())
+      .accountIban(transaction.getAccount().getIban())
       .sort(SortMode.ASC.getMode());
 
     given(transactionRepository.findByAccountIban(filter.getAccountIban()))
@@ -187,15 +196,12 @@ public class TransactionServiceTest {
       .reference(EXISTING_REFERENCE)
       .channel(Channels.ATM.getValue());
 
-    given(transactionRepository.findByReference(searchFilter.getReference()))
-      .willReturn(Optional.of(transaction));
-
-    given(transactionStatusRules.apply(searchFilter, transaction))
-      .willReturn(new TransactionStatusDto().status(Status.PENDING.getValue()));
+    Reference searchReference = new Reference().value(searchFilter.getReference());
 
     TransactionStatusDto status  = transactionService.searchTransactionStatus(searchFilter);
 
     assertThat(status).isNotNull();
+    assertThat(allStatus()).containsAnyOf(status.getStatus());
 
   }
 
@@ -203,7 +209,7 @@ public class TransactionServiceTest {
   public void shouldSearchTransactionsOrderingDescending() {
 
     TransactionSearchDto filter = new TransactionSearchDto()
-      .accountIban(transaction.getAccountIban())
+      .accountIban(transaction.getAccount().getIban())
       .sort(SortMode.DESC.getMode());
 
     given(transactionRepository.findByAccountIban(filter.getAccountIban()))
@@ -216,5 +222,11 @@ public class TransactionServiceTest {
     assertThat(transactions).hasSize(3);
     assertThat(transactions).isSortedAccordingTo(Comparator.comparingDouble(Transaction::getAmount).reversed());
 
+  }
+
+  private List<String> allStatus() {
+    return Stream.of(Status.values())
+      .map(Status::getValue)
+      .collect(Collectors.toList());
   }
 }

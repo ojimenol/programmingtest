@@ -5,13 +5,16 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "REFERENCE")
 public class Reference {
+
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+  @SequenceGenerator(name = "referenceSequence", sequenceName = "reference_seq", initialValue = 1, allocationSize = 1)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "referenceSequence")
   private Long id;
 
   @Column(name = "VALUE", length = 6, nullable = true, unique = true)
@@ -41,5 +44,11 @@ public class Reference {
   public Reference value(String value) {
     this.value = value;
     return this;
+  }
+
+  public Reference clone() {
+    return new Reference()
+      .id(this.id)
+      .value(this.value);
   }
 }

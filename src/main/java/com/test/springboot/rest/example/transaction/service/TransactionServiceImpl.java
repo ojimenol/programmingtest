@@ -13,7 +13,9 @@ import com.test.springboot.rest.example.transaction.dto.TransactionStatusDto;
 import com.test.springboot.rest.example.transaction.dto.TransactionStatusFilterDto;
 import com.test.springboot.rest.example.transaction.exception.TransactionException;
 import com.test.springboot.rest.example.transaction.generator.TransactionRefGenerator;
+import com.test.springboot.rest.example.transaction.persistent.Reference;
 import com.test.springboot.rest.example.transaction.persistent.Transaction;
+import com.test.springboot.rest.example.transaction.repository.ReferenceRepository;
 import com.test.springboot.rest.example.transaction.repository.TransactionRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -41,6 +43,9 @@ public class TransactionServiceImpl implements  TransactionService {
   private TransactionRepository transactionRepository;
 
   @Autowired
+  private ReferenceRepository referenceRepository;
+
+  @Autowired
   private AccountService accountService;
 
   @Autowired
@@ -51,19 +56,30 @@ public class TransactionServiceImpl implements  TransactionService {
   public Transaction createTransaction(Transaction transaction) {
     generateReferenceIfNull(transaction);
 
+    System.out.println("New reference: " + transaction.getReference().getValue());
+
     generateDateIfNull(transaction);
 
     checkDuplicatedReference(transaction);
 
     Account account = Optional.of(transaction)
-      .map(Transaction::getAccountIban)
+      .map(Transaction::getAccount)
+      .map(Account::getIban)
       .flatMap(accountService::getAccountByIban)
       .orElseThrow(() -> new TransactionException(Error.ACCOUNT_NOT_FOUND));
 
+    transaction.setAccount(account);
+
     checkPositiveBalanceAfter(transaction, account);
 
-    return transactionRepository.save(transaction);
+    Optional.of(transaction)
+      .map(Transaction::getReference)
+      .map(referenceRepository::save)
+      .ifPresent(transaction::setReference);
 
+    System.out.println("####New reference: " + transaction.getReference().getId() + ", " + transaction.getReference().getValue());
+
+    return transactionRepository.save(transaction);
   }
 
   @Override
@@ -100,13 +116,14 @@ public class TransactionServiceImpl implements  TransactionService {
   private void checkDuplicatedReference(Transaction transaction) {
     Optional.of(transaction)
       .map(Transaction::getReference)
+      .map(Reference::getValue)
       .filter(not(this::existsReference))
       .orElseThrow(() -> new TransactionException(Error.CREATE_TRANSACTION_REFERENCE_EXISTS));
   }
 
   private void generateReferenceIfNull(Transaction transaction) {
     Optional.of(transaction)
-      .filter(trans -> Objects.isNull(trans.getReference()))
+      .filter(trans -> Objects.isNull(trans.getReference()) || Objects.isNull(trans.getReference().getValue()))
       .map(trans -> transactionRefGenerator.generateReference())
       .ifPresent(transaction::setReference);
   }
@@ -120,7 +137,7 @@ public class TransactionServiceImpl implements  TransactionService {
   }
   
   private boolean existsReference(String reference) {
-    return transactionRepository.findByReference(reference).isPresent();
+    return referenceRepository.findByValue(reference).isPresent();
   }
 
   private void checkPositiveBalanceAfter(Transaction transaction, Account account) {

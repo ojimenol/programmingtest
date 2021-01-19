@@ -72,16 +72,15 @@ public class TransactionRefGeneratorTest {
   public void shouldGenerateSequential() {
     Reference reference = new Reference().id(this.id);
 
-    when(referenceRepository.save(any(Reference.class)))
-      .thenReturn(reference);
+    when(referenceRepository.save(any(Reference.class))).thenReturn(reference);
 
     if (this.expectedException != null) {
       assertThrows(this.expectedException, () -> transactionRefGenerator.generateReference(), this.expectedExceptionMessage);
     } else {
-      String referenceValue = transactionRefGenerator.generateReference();
+      Reference generatedReference = transactionRefGenerator.generateReference();
 
-      assertThat(referenceValue).hasSize(TransactionRefGenerator.REFERENCE_SIZE);
-      assertThat(referenceValue).isEqualTo(this.expectedReference);
+      assertThat(generatedReference.getValue()).hasSize(TransactionRefGenerator.REFERENCE_SIZE);
+      assertThat(generatedReference.getValue()).isEqualTo(this.expectedReference);
     }
   }
 }
